@@ -1,0 +1,188 @@
+🔹 Platform Overview
+
+We are developing a live virtual classroom platform similar to Zoom, but with built-in student engagement tracking and understanding assessment features.
+
+It includes:
+
+🎥 Live video classes
+
+💬 Real-time chat
+
+📂 Content sharing (notes, PPTs, screen share)
+
+📊 Student activity monitoring
+
+🧠 Instant understanding checks
+
+🔹 1️⃣ Engagement Monitoring System
+✅ Activity Popups
+4
+
+Random popups appear during the class.
+
+Students must click/respond to confirm they are active.
+
+If a student interacts with less than 80% of popups, they are automatically marked absent.
+
+🎯 Purpose:
+
+Prevent fake attendance.
+
+Ensure students are actually present.
+
+Increase classroom seriousness.
+
+🔹 2️⃣ Real-Time Understanding Check
+⏳ 1-Minute Topic-Based Questions
+4
+
+Topic-related questions appear randomly.
+
+Students get 1 minute to answer.
+
+These are short MCQs or conceptual questions.
+
+📊 Teacher Dashboard Shows:
+
+% of students who answered correctly
+
+Common wrong answers
+
+Weak topic areas
+
+Individual student performance
+
+🎯 Purpose:
+
+Check understanding instantly.
+
+Help teachers adjust teaching immediately.
+
+Identify weak students early.
+
+🔹 3️⃣ Additional Smart Features (Optional to Mention)
+
+You can add these to make your project stronger:
+
+📈 Attendance analytics report
+
+🧠 AI-based performance prediction
+
+📁 Automatic lecture recording
+
+📊 Engagement score for each student
+
+🚨 Alert if student switches tabs frequently
+
+🔥 Why Our Solution is Better
+
+Unlike traditional platforms:
+
+It doesn’t just connect students, it ensures engagement.
+
+It doesn’t just deliver content, it measures understanding live.
+
+It reduces proxy attendance and passive learning.
+
+🔹 1️⃣ AI-Based Attention Detection
+4
+
+How it works:
+
+Uses webcam (with permission).
+
+Detects if student is looking at screen.
+
+Alerts teacher if student is distracted for long.
+
+Why it’s useful:
+
+Prevents multitasking.
+
+Improves real attention tracking.
+
+🔹 2️⃣ Smart Analytics Dashboard
+4
+
+Features:
+
+Attendance percentage
+
+Engagement score
+
+Weak topic analysis
+
+Class performance comparison
+
+Benefit:
+
+Teachers can make data-driven decisions.
+
+🔹 3️⃣ Breakout Collaboration Rooms
+4
+
+Similar to Zoom breakout rooms
+
+Why add this:
+
+Group discussions
+
+Peer learning
+
+Team projects during live class
+
+🔹 4️⃣ Gamification System 🎮
+
+Features:
+
+Points for answering questions
+
+Leaderboard
+
+Badges for attendance streak
+
+Rewards for participation
+
+Why:
+
+Makes learning fun
+
+Encourages competition
+
+Increases engagement naturally
+
+🔹 5️⃣ AI Doubt Assistant 🤖
+
+How it works:
+
+Students can ask questions privately.
+
+AI gives instant basic explanations.
+
+Teacher sees most asked doubts.
+
+Benefit:
+
+Students who feel shy can still ask.
+
+Saves teacher time.
+
+🔹 6️⃣ Tab Switching / Idle Tracking
+
+Detect when student switches browser tabs.
+
+Track inactivity time.
+
+Generate focus score.
+
+Useful for preventing cheating or distractions.
+
+🔹 7️⃣ Auto Notes & Recording
+
+Automatic lecture recording.
+
+AI-generated summary notes.
+
+Keyword highlights.
+
+Helps students revise later.

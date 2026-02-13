@@ -1,0 +1,343 @@
+🧠 MASTER DEVELOPMENT PROMPT
+Remote Classroom Platform (Engagement-Aware Online Learning System)
+
+You are a senior full-stack software engineer.
+Build a production-grade Remote Classroom Platform similar to Zoom but focused on student engagement detection and understanding analysis.
+
+The system must include live video classes, chat, content sharing, automated attendance tracking, timed comprehension questions, and analytics dashboards.
+
+Follow clean architecture, modular structure, scalable backend, and secure real-time communication.
+
+1️⃣ TECH STACK (MANDATORY)
+Frontend
+
+Use:
+
+React (Vite)
+
+Tailwind CSS
+
+WebRTC
+
+Socket.IO client
+
+Redux Toolkit (state management)
+
+Chart.js (analytics)
+
+Service Workers (tab tracking)
+
+Backend
+
+Use:
+
+Node.js + Express
+
+Socket.IO
+
+WebRTC signaling server
+
+JWT authentication
+
+Redis (real-time state cache)
+
+PostgreSQL (persistent data)
+
+Additional Services
+
+Media server: mediasoup OR simple peer mesh (for MVP)
+
+Cron jobs (popup triggers)
+
+Worker queue (question evaluation)
+
+2️⃣ CORE FEATURES
+A. Authentication System
+Roles
+
+Teacher
+
+Student
+
+Flow
+
+Register
+
+Login
+
+JWT issued
+
+Join classroom using class code
+
+DB Tables
+
+Users(id, name, email, password_hash, role)
+Classes(id, teacher_id, title, code)
+Enrollments(id, class_id, student_id)
+
+B. Live Classroom (WebRTC)
+Required Capabilities
+
+Video streaming
+
+Audio streaming
+
+Screen sharing
+
+Raise hand
+
+Mute/unmute
+
+Chat messages
+
+Participant list
+
+Implementation Steps
+
+Socket.IO handles signaling
+
+Peer connection created between users
+
+Teacher acts as room host
+
+Students auto join stream
+
+Dynamic peer addition/removal
+
+C. Engagement Popup System (Attendance Logic)
+Purpose
+
+Detect if student is actively present.
+
+Behavior
+
+Every 3–7 minutes randomly:
+
+Server triggers popup event
+
+Student must click within 15 seconds
+
+Rule
+
+attendance_score = responded_popups / total_popups
+
+IF attendance_score < 0.8
+→ mark ABSENT
+
+Backend Logic
+
+Create service:
+EngagementEngine.js
+
+Responsibilities:
+
+schedule popups
+
+track responses
+
+calculate engagement
+
+DB Table
+
+PopupLogs(id, class_id, student_id, responded, timestamp)
+
+D. Understanding Check System (Timed Questions)
+Behavior
+
+Teacher triggers OR auto-trigger based on time:
+
+1 question appears
+
+60 second timer
+
+MCQ format
+
+Teacher Dashboard Shows
+
+% correct
+
+Most chosen wrong option
+
+Students struggling
+
+DB Tables
+
+Questions(id, class_id, text)
+Options(id, question_id, text, is_correct)
+Responses(id, student_id, question_id, option_id, time_taken)
+
+E. Tab Switch / Focus Detection
+
+Use:
+
+Page Visibility API
+
+Blur / focus events
+
+Service Worker heartbeats
+
+Track:
+
+tab switches
+
+idle time
+
+minimized window
+
+DB:
+FocusLogs(id, student_id, duration, event_type)
+
+Generate:
+Focus Score per student
+
+F. Teacher Analytics Dashboard
+Show
+
+Attendance %
+
+Engagement Score
+
+Focus Score
+
+Understanding Score
+
+Weak topic detection
+
+Charts
+
+Bar chart: question correctness
+
+Pie chart: active vs inactive
+
+Timeline: engagement over time
+
+G. Gamification (Bonus but Implementable)
+
+Points for answering questions
+
+Leaderboard per class
+
+Tables:
+Points(student_id, class_id, score)
+
+3️⃣ SYSTEM ARCHITECTURE
+Event Flow
+
+Student joins → socket connection
+↓
+Server registers presence
+↓
+Popup scheduled → event emitted
+↓
+Student response stored
+↓
+Question asked → answer stored
+↓
+Analytics updated in real time
+
+4️⃣ FILE STRUCTURE
+Backend
+server/
+  controllers/
+  models/
+  routes/
+  services/
+    engagementEngine.js
+    questionEngine.js
+    analyticsEngine.js
+  sockets/
+    classroomSocket.js
+  middlewares/
+    auth.js
+  utils/
+    scheduler.js
+Frontend
+src/
+  pages/
+    Classroom.jsx
+    Dashboard.jsx
+    Login.jsx
+  components/
+    VideoGrid.jsx
+    ChatBox.jsx
+    PopupCheck.jsx
+    QuestionModal.jsx
+    AnalyticsCharts.jsx
+  store/
+    classroomSlice.js
+    userSlice.js
+5️⃣ ALGORITHMS
+Attendance Calculation
+attendance = popup_responses / total_popups
+
+if attendance >= 0.8:
+    present
+else:
+    absent
+Understanding Score
+understanding_score =
+correct_answers / total_questions
+Engagement Score
+engagement =
+0.5(attendance) +
+0.3(focus_score) +
+0.2(question_accuracy)
+6️⃣ SECURITY REQUIREMENTS
+
+JWT protected sockets
+
+No anonymous classroom join
+
+Prevent duplicate login
+
+Prevent response spoofing
+
+Timestamp validation on answers
+
+7️⃣ DEPLOYMENT PLAN
+Development
+
+Frontend → localhost:5173
+Backend → localhost:5000
+Redis → docker
+Postgres → docker
+
+Production
+
+Frontend → Vercel
+
+Backend → Render / AWS
+
+DB → Supabase / RDS
+
+Redis → Upstash
+
+8️⃣ MVP PRIORITY ORDER (IMPORTANT)
+
+Build in this exact order:
+
+Authentication
+
+Join classroom
+
+Video streaming
+
+Chat
+
+Engagement popup
+
+Question popup
+
+Analytics dashboard
+
+Focus tracking
+
+Gamification
+
+9️⃣ FINAL REQUIREMENT
+
+Write clean, commented code.
+Do NOT skip implementation details.
+Implement complete working endpoints and components.
+
+The project must be runnable after npm install and docker compose up.
