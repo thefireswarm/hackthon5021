@@ -100,6 +100,21 @@ export default function Classroom() {
             dispatch(setQuestionResults(data));
         });
 
+        // Class ended by teacher
+        newSocket.on('class-ended', ({ message, endedBy }) => {
+            alert(`Class ended by ${endedBy}`);
+            // Stop local media
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+            }
+            // Clean up peer connections
+            peerConnectionsRef.current.forEach(pc => pc.close());
+            peerConnectionsRef.current.clear();
+            stopFocusTracking();
+            dispatch(resetClassroom());
+            navigate('/');
+        });
+
         // WebRTC signaling
         newSocket.on('user-joined', async ({ socketId, userId, userName, role }) => {
             console.log(`User joined: ${userName}`);
@@ -228,6 +243,14 @@ export default function Classroom() {
         navigate('/');
     };
 
+    const endClass = () => {
+        if (!socket || user?.role !== 'teacher') return;
+        if (!window.confirm('Are you sure you want to end this class? All participants will be disconnected.')) return;
+        socket.emit('end-class', { classId });
+        if (localStream) localStream.getTracks().forEach(t => t.stop());
+        navigate('/');
+    };
+
     // Create and broadcast question (Teacher)
     const handleCreateQuestion = async () => {
         if (!qText.trim() || qOptions.filter(o => o.text.trim()).length < 2) return;
@@ -281,6 +304,9 @@ export default function Classroom() {
                             </button>
                             <button onClick={() => navigate(`/dashboard/${classId}`)} className="btn btn-ghost text-xs py-1.5">
                                 📊 Dashboard
+                            </button>
+                            <button onClick={endClass} className="btn btn-danger text-xs py-1.5">
+                                🛑 End Class
                             </button>
                         </>
                     )}

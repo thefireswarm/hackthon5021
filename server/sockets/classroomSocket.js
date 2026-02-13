@@ -162,6 +162,37 @@ function setupClassroomSocket(io) {
             persist();
         });
 
+        // ── End Class (Teacher Only) ────────────────────
+        socket.on('end-class', ({ classId }) => {
+            if (socket.user.role !== 'teacher') return;
+
+            console.log(`[Socket] Teacher ${socket.user.name} ended class ${classId}`);
+
+            // Notify all participants that the class has ended
+            io.to(`class:${classId}`).emit('class-ended', {
+                message: 'The teacher has ended the class.',
+                endedBy: socket.user.name
+            });
+
+            // Disconnect all sockets in this room
+            const room = io.sockets.adapter.rooms.get(`class:${classId}`);
+            if (room) {
+                for (const socketId of room) {
+                    const s = io.sockets.sockets.get(socketId);
+                    if (s) {
+                        s.leave(`class:${classId}`);
+                        s.classId = null;
+                    }
+                }
+            }
+
+            // Clean up room state
+            if (classRooms.has(classId)) {
+                classRooms.delete(classId);
+            }
+            engagement.stopEngagement(classId);
+        });
+
         // ── Screen Share ────────────────────────────────
         socket.on('screen-share-start', ({ classId }) => {
             socket.to(`class:${classId}`).emit('screen-share-started', {
