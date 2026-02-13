@@ -41,6 +41,12 @@ export default function Classroom() {
 
     const peersRef = useRef(new Map());
     const peerConnectionsRef = useRef(new Map());
+    const localStreamRef = useRef(null);
+
+    // Keep the ref in sync with state
+    useEffect(() => {
+        localStreamRef.current = localStream;
+    }, [localStream]);
 
     // Fetch class info
     useEffect(() => {
@@ -49,154 +55,154 @@ export default function Classroom() {
             .catch(() => navigate('/'));
     }, [classId]);
 
-    // Initialize WebRTC and Socket.IO
+    // Get local media stream FIRST, then initialize Socket.IO + WebRTC
     useEffect(() => {
-        const newSocket = io('http://localhost:5000', {
-            auth: { token }
-        });
+        let newSocket = null;
+        let cancelled = false;
 
-        newSocket.on('connect', () => {
-            console.log('Socket connected');
-            newSocket.emit('join-room', { classId });
-
-            // Start engagement for teacher
-            if (user.role === 'teacher') {
-                newSocket.emit('start-engagement', { classId });
-            }
-        });
-
-        // Participants update
-        newSocket.on('participants-update', (data) => {
-            dispatch(setParticipants(data));
-        });
-
-        // Chat
-        newSocket.on('chat-message', (msg) => {
-            dispatch(addChatMessage(msg));
-        });
-
-        // Hand raised
-        newSocket.on('hand-raised', (data) => {
-            dispatch(addHandRaised(data));
-        });
-
-        // Engagement popup
-        newSocket.on('engagement-popup', (data) => {
-            dispatch(setPopup(data));
-        });
-
-        // Question popup
-        newSocket.on('question-popup', (data) => {
-            dispatch(setActiveQuestion(data));
-        });
-
-        // Question closed
-        newSocket.on('question-closed', () => {
-            // handled by timer in QuestionModal
-        });
-
-        // Question results
-        newSocket.on('question-results', (data) => {
-            dispatch(setQuestionResults(data));
-        });
-
-        // Class ended by teacher
-        newSocket.on('class-ended', ({ message, endedBy }) => {
-            alert(`Class ended by ${endedBy}`);
-            // Stop local media
-            if (localStream) {
-                localStream.getTracks().forEach(t => t.stop());
-            }
-            // Clean up peer connections
-            peerConnectionsRef.current.forEach(pc => pc.close());
-            peerConnectionsRef.current.clear();
-            stopFocusTracking();
-            dispatch(resetClassroom());
-            navigate('/');
-        });
-
-        // WebRTC signaling
-        newSocket.on('user-joined', async ({ socketId, userId, userName, role }) => {
-            console.log(`User joined: ${userName}`);
-            const pc = createPeerConnection(newSocket, socketId, userName, role);
-            peerConnectionsRef.current.set(socketId, pc);
-
-            if (localStream) {
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            }
-
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            newSocket.emit('webrtc-offer', { targetSocketId: socketId, offer });
-        });
-
-        newSocket.on('webrtc-offer', async ({ senderSocketId, userId, userName, offer }) => {
-            const pc = createPeerConnection(newSocket, senderSocketId, userName);
-            peerConnectionsRef.current.set(senderSocketId, pc);
-
-            if (localStream) {
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            }
-
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            newSocket.emit('webrtc-answer', { targetSocketId: senderSocketId, answer });
-        });
-
-        newSocket.on('webrtc-answer', async ({ senderSocketId, answer }) => {
-            const pc = peerConnectionsRef.current.get(senderSocketId);
-            if (pc) {
-                await pc.setRemoteDescription(new RTCSessionDescription(answer));
-            }
-        });
-
-        newSocket.on('webrtc-ice-candidate', async ({ senderSocketId, candidate }) => {
-            const pc = peerConnectionsRef.current.get(senderSocketId);
-            if (pc && candidate) {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-        });
-
-        newSocket.on('user-left', ({ socketId }) => {
-            const pc = peerConnectionsRef.current.get(socketId);
-            if (pc) pc.close();
-            peerConnectionsRef.current.delete(socketId);
-            peersRef.current.delete(socketId);
-            setPeers(Array.from(peersRef.current.values()));
-        });
-
-        setSocket(newSocket);
-
-        // Start focus tracking for students
-        if (user.role === 'student') {
-            startFocusTracking(newSocket, classId);
-        }
-
-        return () => {
-            stopFocusTracking();
-            newSocket.emit('leave-room');
-            newSocket.disconnect();
-            peerConnectionsRef.current.forEach(pc => pc.close());
-            peerConnectionsRef.current.clear();
-            dispatch(resetClassroom());
-        };
-    }, [classId, token]);
-
-    // Get local media stream
-    useEffect(() => {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(stream => {
+        async function init() {
+            // Step 1: Get camera/mic
+            let stream = null;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
                 setLocalStream(stream);
-            })
-            .catch(err => {
+                localStreamRef.current = stream;
+            } catch (err) {
                 console.warn('Camera/mic not available:', err);
+            }
+
+            // Step 2: Connect socket AFTER media is ready
+            newSocket = io('http://localhost:5000', { auth: { token } });
+
+            newSocket.on('connect', () => {
+                console.log('Socket connected');
+                newSocket.emit('join-room', { classId });
+                if (user.role === 'teacher') {
+                    newSocket.emit('start-engagement', { classId });
+                }
             });
 
-        return () => {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
+            // Participants update
+            newSocket.on('participants-update', (data) => {
+                dispatch(setParticipants(data));
+            });
+
+            // Chat
+            newSocket.on('chat-message', (msg) => {
+                dispatch(addChatMessage(msg));
+            });
+
+            // Hand raised
+            newSocket.on('hand-raised', (data) => {
+                dispatch(addHandRaised(data));
+            });
+
+            // Engagement popup
+            newSocket.on('engagement-popup', (data) => {
+                dispatch(setPopup(data));
+            });
+
+            // Question popup
+            newSocket.on('question-popup', (data) => {
+                dispatch(setActiveQuestion(data));
+            });
+
+            // Question closed
+            newSocket.on('question-closed', () => { });
+
+            // Question results
+            newSocket.on('question-results', (data) => {
+                dispatch(setQuestionResults(data));
+            });
+
+            // Class ended by teacher
+            newSocket.on('class-ended', ({ message, endedBy }) => {
+                alert(`Class ended by ${endedBy}`);
+                const s = localStreamRef.current;
+                if (s) s.getTracks().forEach(t => t.stop());
+                peerConnectionsRef.current.forEach(pc => pc.close());
+                peerConnectionsRef.current.clear();
+                stopFocusTracking();
+                dispatch(resetClassroom());
+                navigate('/');
+            });
+
+            // WebRTC signaling — uses localStreamRef to always get the current stream
+            newSocket.on('user-joined', async ({ socketId, userId, userName, role }) => {
+                console.log(`User joined: ${userName}`);
+                const pc = createPeerConnection(newSocket, socketId, userName, role);
+                peerConnectionsRef.current.set(socketId, pc);
+
+                const s = localStreamRef.current;
+                if (s) {
+                    s.getTracks().forEach(track => pc.addTrack(track, s));
+                }
+
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                newSocket.emit('webrtc-offer', { targetSocketId: socketId, offer });
+            });
+
+            newSocket.on('webrtc-offer', async ({ senderSocketId, userId, userName, offer }) => {
+                const pc = createPeerConnection(newSocket, senderSocketId, userName);
+                peerConnectionsRef.current.set(senderSocketId, pc);
+
+                const s = localStreamRef.current;
+                if (s) {
+                    s.getTracks().forEach(track => pc.addTrack(track, s));
+                }
+
+                await pc.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                newSocket.emit('webrtc-answer', { targetSocketId: senderSocketId, answer });
+            });
+
+            newSocket.on('webrtc-answer', async ({ senderSocketId, answer }) => {
+                const pc = peerConnectionsRef.current.get(senderSocketId);
+                if (pc) {
+                    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                }
+            });
+
+            newSocket.on('webrtc-ice-candidate', async ({ senderSocketId, candidate }) => {
+                const pc = peerConnectionsRef.current.get(senderSocketId);
+                if (pc && candidate) {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+            });
+
+            newSocket.on('user-left', ({ socketId }) => {
+                const pc = peerConnectionsRef.current.get(socketId);
+                if (pc) pc.close();
+                peerConnectionsRef.current.delete(socketId);
+                peersRef.current.delete(socketId);
+                setPeers(Array.from(peersRef.current.values()));
+            });
+
+            setSocket(newSocket);
+
+            // Start focus tracking for students
+            if (user.role === 'student') {
+                startFocusTracking(newSocket, classId);
             }
+        }
+
+        init();
+
+        return () => {
+            cancelled = true;
+            stopFocusTracking();
+            if (newSocket) {
+                newSocket.emit('leave-room');
+                newSocket.disconnect();
+            }
+            peerConnectionsRef.current.forEach(pc => pc.close());
+            peerConnectionsRef.current.clear();
+            const s = localStreamRef.current;
+            if (s) s.getTracks().forEach(t => t.stop());
+            dispatch(resetClassroom());
         };
     }, []);
 
